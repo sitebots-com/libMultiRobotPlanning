@@ -254,7 +254,7 @@ class Environment {
   Environment(size_t dimx, size_t dimy,
               const std::unordered_set<Location>& obstacles,
               const std::vector<State>& startStates,
-							const std::vector<std::pair<Location, Location> >& tasks,
+              const std::vector<std::pair<Location, Location> >& tasks,
               size_t maxTaskAssignments)
       : m_dimx(dimx),
         m_dimy(dimy),
@@ -269,11 +269,11 @@ class Environment {
         m_lowLevelExpanded(0),
         m_heuristic(dimx, dimy, obstacles) {
     m_numAgents = startStates.size();
-		for (size_t i = 0; i < tasks.size(); ++i) {
-    	for (size_t j = 0; j < m_numAgents; ++j) {
-				m_assignment.setCost(j, tasks[i], m_heuristic.getValue(tasks[i].first, tasks[i].second));
-			}
-		}
+    for (size_t i = 0; i < tasks.size(); ++i) {
+      for (size_t j = 0; j < m_numAgents; ++j) {
+        m_assignment.setCost(j, tasks[i], m_heuristic.getValue(tasks[i].first, tasks[i].second));
+      }
+    }
     m_assignment.solve();
   }
 
@@ -281,11 +281,11 @@ class Environment {
                           const std::pair<Location, Location>* task) {
     assert(constraints);
     m_agentIdx = agentIdx;
-		if(task != nullptr) {
-    	m_goal = &(task->second);
-		} else {
-			m_goal = nullptr;
-		}
+    if(task != nullptr) {
+      m_goal = &(task->second);
+    } else {
+      m_goal = nullptr;
+    }
     m_constraints = constraints;
     m_lastGoalConstraint = -1;
     if (m_goal != nullptr) {
@@ -622,7 +622,7 @@ int main(int argc, char* argv[]) {
 
   std::unordered_set<Location> obstacles;
   std::vector<State> startStates;
-	std::vector<std::pair<Location, Location> > tasks;
+  std::vector<std::pair<Location, Location> > tasks;
 
   const auto& dim = config["map"]["dimensions"];
   int dimx = dim[0].as<int>();
@@ -638,12 +638,12 @@ int main(int argc, char* argv[]) {
   }
 
   for (const auto& node : config["tasks"]) {
-		std::cout << "load task" << std::endl;
-		const auto& start = node["start"];
-		const auto& goal = node["goal"];		
-		tasks.emplace_back(std::make_pair(
-					Location(start[0].as<int>(), start[1].as<int>()),
-					Location(goal[0].as<int>(), goal[1].as<int>())));
+    std::cout << "load task" << std::endl;
+    const auto& start = node["start"];
+    const auto& goal = node["goal"];    
+    tasks.emplace_back(std::make_pair(
+          Location(start[0].as<int>(), start[1].as<int>()),
+          Location(goal[0].as<int>(), goal[1].as<int>())));
   }
 
   Environment mapf(dimx, dimy, obstacles, startStates, tasks,
