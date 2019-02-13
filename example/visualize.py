@@ -30,6 +30,7 @@ class Animation:
     self.artists = []
     self.agents = dict()
     self.agent_names = dict()
+
     # create boundary patch
     xmin = -0.5
     ymin = -0.5
@@ -53,7 +54,7 @@ class Animation:
     # create agents:
     self.T = 0
     # draw goals first
-    for d, i in zip(map["agents"], range(0, len(map["agents"]))):
+    for i, d in enumerate(map["tasks"]):
       self.patches.append(Rectangle((d["goal"][0] - 0.25, d["goal"][1] - 0.25), 0.5, 0.5, facecolor=Colors[i%len(Colors)], edgecolor='black', alpha=0.5))
     for d, i in zip(map["agents"], range(0, len(map["agents"]))):
       name = d["name"]
