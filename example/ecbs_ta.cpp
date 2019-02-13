@@ -254,7 +254,7 @@ class Environment {
   Environment(size_t dimx, size_t dimy,
               const std::unordered_set<Location>& obstacles,
               const std::vector<State>& startStates,
-              const std::vector<std::unordered_set<Location> >& goals,
+							const std::vector<std::pair<Location, Location> >& tasks,
               size_t maxTaskAssignments)
       : m_dimx(dimx),
         m_dimy(dimy),
@@ -269,22 +269,23 @@ class Environment {
         m_lowLevelExpanded(0),
         m_heuristic(dimx, dimy, obstacles) {
     m_numAgents = startStates.size();
-    for (size_t i = 0; i < startStates.size(); ++i) {
-      for (const auto& goal : goals[i]) {
-        m_assignment.setCost(
-            i, goal, m_heuristic.getValue(
-                         Location(startStates[i].x, startStates[i].y), goal));
-        m_goals.insert(goal);
-      }
-    }
+		for (size_t i = 0; i < tasks.size(); ++i) {
+    	for (size_t j = 0; j < m_numAgents; ++j) {
+				m_assignment.setCost(j, tasks[i], m_heuristic.getValue(tasks[i].first, tasks[i].second));
+			}
+		}
     m_assignment.solve();
   }
 
   void setLowLevelContext(size_t agentIdx, const Constraints* constraints,
-                          const Location* task) {
+                          const std::pair<Location, Location>* task) {
     assert(constraints);
     m_agentIdx = agentIdx;
-    m_goal = task;
+		if(task != nullptr) {
+    	m_goal = &(task->second);
+		} else {
+			m_goal = nullptr;
+		}
     m_constraints = constraints;
     m_lastGoalConstraint = -1;
     if (m_goal != nullptr) {
@@ -510,7 +511,7 @@ class Environment {
     }
   }
 
-  void nextTaskAssignment(std::map<size_t, Location>& tasks) {
+  void nextTaskAssignment(std::map<size_t, std::pair<Location, Location> >& tasks) {
     if (m_numTaskAssignments > m_maxTaskAssignments) {
       return;
     }
@@ -519,7 +520,7 @@ class Environment {
     if (!tasks.empty()) {
       std::cout << "nextTaskAssignment: cost: " << cost << std::endl;
       for (const auto& s : tasks) {
-        std::cout << s.first << "->" << s.second << std::endl;
+        std::cout << s.first << "-> (" << s.second.first << ", " << s.second.second << ")" << std::endl;
       }
 
       ++m_numTaskAssignments;
@@ -574,14 +575,13 @@ class Environment {
   const Location* m_goal;
   const Constraints* m_constraints;
   int m_lastGoalConstraint;
-  NextBestAssignment<size_t, Location> m_assignment;
+  NextBestAssignment<size_t, std::pair<Location,Location> > m_assignment;
   size_t m_maxTaskAssignments;
   size_t m_numTaskAssignments;
   int m_highLevelExpanded;
   int m_lowLevelExpanded;
   ShortestPathHeuristic m_heuristic;
   size_t m_numAgents;
-  std::unordered_set<Location> m_goals;
 };
 
 int main(int argc, char* argv[]) {
@@ -621,8 +621,8 @@ int main(int argc, char* argv[]) {
   YAML::Node config = YAML::LoadFile(inputFile);
 
   std::unordered_set<Location> obstacles;
-  std::vector<std::unordered_set<Location> > goals;
   std::vector<State> startStates;
+	std::vector<std::pair<Location, Location> > tasks;
 
   const auto& dim = config["map"]["dimensions"];
   int dimx = dim[0].as<int>();
@@ -635,15 +635,20 @@ int main(int argc, char* argv[]) {
   for (const auto& node : config["agents"]) {
     const auto& start = node["start"];
     startStates.emplace_back(State(0, start[0].as<int>(), start[1].as<int>()));
-    goals.resize(goals.size() + 1);
-    for (const auto& goal : node["potentialGoals"]) {
-      goals.back().emplace(Location(goal[0].as<int>(), goal[1].as<int>()));
-    }
   }
 
-  Environment mapf(dimx, dimy, obstacles, startStates, goals,
+  for (const auto& node : config["tasks"]) {
+		std::cout << "load task" << std::endl;
+		const auto& start = node["start"];
+		const auto& goal = node["goal"];		
+		tasks.emplace_back(std::make_pair(
+					Location(start[0].as<int>(), start[1].as<int>()),
+					Location(goal[0].as<int>(), goal[1].as<int>())));
+  }
+
+  Environment mapf(dimx, dimy, obstacles, startStates, tasks,
                    maxTaskAssignments);
-  ECBSTA<State, Action, int, Conflict, Constraints, Location,
+  ECBSTA<State, Action, int, Conflict, Constraints, std::pair<Location, Location>,
          Environment>
       cbs(mapf, w);
   std::vector<PlanResult<State, Action, int> > solution;
